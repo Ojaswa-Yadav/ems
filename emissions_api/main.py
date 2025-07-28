@@ -294,6 +294,9 @@ def generate_simple_predictions(df: pd.DataFrame, emissions_cols: List[str]) -> 
     
     return predictions
 
+# For Vercel serverless deployment
+handler = app
+
 if __name__ == "__main__":
     import uvicorn
     import os
