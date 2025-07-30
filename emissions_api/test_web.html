@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Emissions Prediction API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, button { padding: 10px; }
+        button { background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #45a049; }
+        #result { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 4px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Carbon Emissions Prediction API Test</h1>
+    
+    <h2>File Upload Test</h2>
+    <form id="fileForm">
+        <div class="form-group">
+            <label for="csvFile">Select CSV File:</label>
+            <input type="file" id="csvFile" accept=".csv" required>
+        </div>
+        <button type="submit">Upload and Predict</button>
+    </form>
+
+    <h2>JSON Data Test</h2>
+    <form id="jsonForm">
+        <div class="form-group">
+            <label for="jsonData">JSON Data (Sample provided):</label>
+            <textarea id="jsonData" rows="10" cols="80" placeholder="Enter JSON data here...">[
+  {
+    "#NAME?": "AAPL",
+    "Name": "Apple Inc",
+    "Sector": "Technology",
+    "Asset Class": "Equity",
+    "Country of Headquarters": "United States",
+    "Geographical Region": "North America",
+    "market value": 1000000,
+    "Notional Value": 1000000,
+    "Shares": 1000,
+    "Carbon Emissions Scope 1 FY 2023": 1500,
+    "Carbon Emissions Scope 2 FY 2023": 800,
+    "Carbon Emissions Scope3  FY2023": 5000,
+    "SalesUSDrecent FY 2023": 394328000000
+  }
+]</textarea>
+        </div>
+        <button type="submit">Send JSON and Predict</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        document.getElementById('fileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showResult('Please select a file', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showResult('Processing...', 'success');
+                const response = await fetch(`${API_BASE_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResult(`Success! Predictions: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    showResult(`Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Network error: ${error.message}`, 'error');
+            }
+        });
+
+        document.getElementById('jsonForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const jsonData = document.getElementById('jsonData').value;
+            
+            try {
+                const data = JSON.parse(jsonData);
+                showResult('Processing...', 'success');
+                
+                const response = await fetch(`${API_BASE_URL}/predict-json`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ data: data })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResult(`Success! Predictions: ${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    showResult(`Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<pre class="${type}">${message}</pre>`;
+        }
+
+        // Test API health on page load
+        fetch(`${API_BASE_URL}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'healthy') {
+                    showResult('API is healthy and ready!', 'success');
+                }
+            })
+            .catch(() => {
+                showResult('API is not accessible. Make sure the server is running on localhost:8000', 'error');
+            });
+    </script>
+</body>
+</html>
